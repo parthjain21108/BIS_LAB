@@ -1,0 +1,93 @@
+import random
+import math
+
+# -----------------------
+# Travelling Salesman Problem (TSP) with Gene Expression Algorithm
+# -----------------------
+
+# Step 1: Define the problem
+def distance(city1, city2):
+    return math.sqrt((city1[0] - city2[0])**2 + (city1[1] - city2[1])**2)
+
+def tour_length(tour, cities):
+    total = 0
+    for i in range(len(tour)):
+        total += distance(cities[tour[i]], cities[tour[(i+1) % len(tour)]])
+    return total
+
+# Step 2: Parameters
+POP_SIZE = 50
+N_GENES = 6
+N_GENERATIONS = 100
+MUT_RATE = 0.2
+CROSS_RATE = 0.7
+
+# Step 3: Cities (coordinates)
+cities = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(N_GENES)]
+
+# Step 4: Initialize population (random tours)
+def create_individual():
+    tour = list(range(N_GENES))
+    random.shuffle(tour)
+    return tour
+
+population = [create_individual() for _ in range(POP_SIZE)]
+
+# Step 5: Evaluate fitness
+def fitness(ind):
+    return 1 / (1 + tour_length(ind, cities))
+
+# Step 6: Selection (roulette wheel)
+def selection(pop):
+    weights = [fitness(ind) for ind in pop]
+    return random.choices(pop, weights=weights, k=2)
+
+# Step 7: Crossover (Order Crossover for TSP)
+def crossover(parent1, parent2):
+    if random.random() > CROSS_RATE:
+        return parent1[:]
+    start, end = sorted(random.sample(range(N_GENES), 2))
+    child = [None]*N_GENES
+    child[start:end] = parent1[start:end]
+    pos = end
+    for gene in parent2:
+        if gene not in child:
+            if pos >= N_GENES: pos = 0
+            child[pos] = gene
+            pos += 1
+    return child
+
+# Step 8: Mutation (swap two cities)
+def mutate(ind):
+    if random.random() < MUT_RATE:
+        i, j = random.sample(range(N_GENES), 2)
+        ind[i], ind[j] = ind[j], ind[i]
+
+# Step 9: Gene Expression Algorithm loop
+best = None
+for gen in range(N_GENERATIONS):
+    new_population = []
+    for _ in range(POP_SIZE):
+        p1, p2 = selection(population)
+        child = crossover(p1, p2)
+        mutate(child)
+        new_population.append(child)
+    population = new_population
+
+    # Track best solution
+    current_best = min(population, key=lambda ind: tour_length(ind, cities))
+    if best is None or tour_length(current_best, cities) < tour_length(best, cities):
+        best = current_best
+
+# Step 10: Output best solution
+print("Cities (coordinates):")
+for i, c in enumerate(cities):
+    print(f"City {i}: {c}")
+
+print("\nBest tour order (by city indices):", best)
+print("Best tour length:", tour_length(best, cities))
+
+print("\nBest tour path (with coordinates):")
+for idx in best:
+    print(f"City {idx} -> {cities[idx]}")
+print(f"Back to start -> {cities[best[0]]}")

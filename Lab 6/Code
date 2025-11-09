@@ -1,0 +1,66 @@
+import numpy as np
+
+# ---- Problem Setup ----
+num_jobs = 6
+num_machines = 3
+jobs = np.random.randint(1, 10, size=num_jobs)  # processing times
+
+def fitness(schedule):
+    """Compute makespan for a given schedule (list of machine assignments)."""
+    machine_times = [0] * num_machines
+    for j, m in enumerate(schedule):
+        machine_times[m] += jobs[j]
+    return max(machine_times)  # makespan
+
+# ---- GWO Algorithm ----
+def gwo(max_iter=30, pack_size=10):
+    # Initialize wolves (random schedules)
+    wolves = [np.random.randint(0, num_machines, size=num_jobs) for _ in range(pack_size)]
+    fitness_vals = [fitness(w) for w in wolves]
+
+    # Identify alpha, beta, delta
+    alpha, beta, delta = np.argsort(fitness_vals)[:3]
+    alpha_wolf, beta_wolf, delta_wolf = wolves[alpha], wolves[beta], wolves[delta]
+
+    for t in range(max_iter):
+        a = 2 - 2 * (t / max_iter)  # linearly decreasing
+
+        for i in range(pack_size):
+            X = wolves[i].copy().astype(float)
+
+            for j in range(num_jobs):
+                r1, r2 = np.random.rand(), np.random.rand()
+
+                # Distances from alpha, beta, delta
+                A1, C1 = 2*a*r1 - a, 2*r2
+                D_alpha = abs(C1*alpha_wolf[j] - X[j])
+                X1 = alpha_wolf[j] - A1*D_alpha
+
+                r1, r2 = np.random.rand(), np.random.rand()
+                A2, C2 = 2*a*r1 - a, 2*r2
+                D_beta = abs(C2*beta_wolf[j] - X[j])
+                X2 = beta_wolf[j] - A2*D_beta
+
+                r1, r2 = np.random.rand(), np.random.rand()
+                A3, C3 = 2*a*r1 - a, 2*r2
+                D_delta = abs(C3*delta_wolf[j] - X[j])
+                X3 = delta_wolf[j] - A3*D_delta
+
+                # Update position
+                X[j] = (X1 + X2 + X3) / 3
+
+            # Discretize to machine indices
+            wolves[i] = np.clip(np.round(X), 0, num_machines-1).astype(int)
+
+        # Re-evaluate fitness
+        fitness_vals = [fitness(w) for w in wolves]
+        alpha, beta, delta = np.argsort(fitness_vals)[:3]
+        alpha_wolf, beta_wolf, delta_wolf = wolves[alpha], wolves[beta], wolves[delta]
+
+    return alpha_wolf, fitness(alpha_wolf)
+
+# ---- Run ----
+best_schedule, best_makespan = gwo()
+print("Jobs:", jobs)
+print("Best Schedule (job → machine):", best_schedule)
+print("Best Makespan:", best_makespan)

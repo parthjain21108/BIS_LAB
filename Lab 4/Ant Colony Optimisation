@@ -1,0 +1,93 @@
+import numpy as np
+import random
+
+class ACO_TSP:
+    def __init__(self, distances, n_ants=10, n_iterations=100, alpha=1.0, beta=5.0, rho=0.5, Q=100):
+        self.distances = distances
+        self.n_cities = len(distances)
+        self.n_ants = n_ants
+        self.n_iterations = n_iterations
+        self.alpha = alpha
+        self.beta = beta
+        self.rho = rho
+        self.Q = Q
+        self.pheromone = np.ones((self.n_cities, self.n_cities))  # initial pheromone
+
+        self.heuristic = 1 / (distances + np.eye(self.n_cities))  # avoid divide-by-zero on diagonal
+        np.fill_diagonal(self.heuristic, 0)
+
+    def run(self):
+        best_length = float('inf')
+        best_tour = []
+
+        for _ in range(self.n_iterations):
+            all_tours = []
+            all_lengths = []
+
+            for _ in range(self.n_ants):
+                tour = self.construct_solution()
+                length = self.tour_length(tour)
+                all_tours.append(tour)
+                all_lengths.append(length)
+
+                if length < best_length:
+                    best_length = length
+                    best_tour = tour
+
+            self.update_pheromones(all_tours, all_lengths)
+
+        return best_tour, best_length
+
+    def construct_solution(self):
+        tour = []
+        visited = set()
+        current_city = random.randint(0, self.n_cities - 1)
+        tour.append(current_city)
+        visited.add(current_city)
+
+        while len(tour) < self.n_cities:
+            probs = []
+            for city in range(self.n_cities):
+                if city not in visited:
+                    pher = self.pheromone[current_city][city] ** self.alpha
+                    heur = self.heuristic[current_city][city] ** self.beta
+                    probs.append((city, pher * heur))
+            total = sum(p for _, p in probs)
+            r = random.uniform(0, total)
+            s = 0
+            for city, p in probs:
+                s += p
+                if s >= r:
+                    next_city = city
+                    break
+            tour.append(next_city)
+            visited.add(next_city)
+            current_city = next_city
+
+        return tour
+
+    def tour_length(self, tour):
+        return sum(self.distances[tour[i]][tour[(i + 1) % self.n_cities]] for i in range(self.n_cities))
+
+    def update_pheromones(self, all_tours, all_lengths):
+        self.pheromone *= (1 - self.rho)  # Evaporation
+        for tour, length in zip(all_tours, all_lengths):
+            for i in range(len(tour)):
+                a = tour[i]
+                b = tour[(i + 1) % len(tour)]
+                self.pheromone[a][b] += self.Q / length
+                self.pheromone[b][a] += self.Q / length  # symmetric
+
+# Example usage:
+if __name__ == "__main__":
+    distance_matrix = np.array([
+        [0, 2, 9, 10],
+        [1, 0, 6, 4],
+        [15, 7, 0, 8],
+        [6, 3, 12, 0]
+    ])
+
+    aco = ACO_TSP(distance_matrix, n_ants=10, n_iterations=100)
+    best_tour, best_length = aco.run()
+    print("Best Tour:", best_tour)
+    print("Best Length:", best_length)

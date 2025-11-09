@@ -1,0 +1,42 @@
+import numpy as np
+
+WIDTH, HEIGHT = 10, 10
+INF = 9999
+
+def init_grid():
+    grid = np.full((HEIGHT, WIDTH), INF)
+    # Source at top-left corner (0,0)
+    grid[0,0] = 0
+    return grid
+
+def neighbors(y, x):
+    # 4-neighborhood (up, down, left, right)
+    for ny, nx in [(y-1,x), (y+1,x), (y,x-1), (y,x+1)]:
+        if 0 <= ny < HEIGHT and 0 <= nx < WIDTH:
+            yield ny, nx
+
+def update_distances(grid):
+    new_grid = grid.copy()
+    for y in range(HEIGHT):
+        for x in range(WIDTH):
+            for ny, nx in neighbors(y, x):
+                cost = 1  # uniform cost
+                new_dist = grid[ny, nx] + cost
+                if new_dist < new_grid[y, x]:
+                    new_grid[y, x] = new_dist
+    return new_grid
+
+def print_grid(grid):
+    for row in grid:
+        print(' '.join(f'{int(x):2d}' if x != INF else '∞ ' for x in row))
+    print()
+
+# Main loop
+grid = init_grid()
+print("Initial distances:")
+print_grid(grid)
+
+for step in range(15):
+    grid = update_distances(grid)
+    print(f"After step {step+1}:")
+    print_grid(grid)

@@ -1,0 +1,66 @@
+import numpy as np
+
+# Objective function
+def f(position):
+    x, y = position
+    return x**2 + y**2
+
+# Parameters
+w = 0.5       # inertia weight
+c1 = 1.5      # cognitive coefficient
+c2 = 1.5      # social coefficient
+
+num_particles = 3
+num_iterations = 2
+dim = 2       # dimensions: x and y
+
+# Initialize particles' positions and velocities (as per example)
+positions = np.array([[2.0, 2.0],
+                      [-3.0, -1.0],
+                      [1.0, -4.0]])
+
+velocities = np.zeros((num_particles, dim))
+
+personal_best_positions = positions.copy()
+personal_best_values = np.array([f(pos) for pos in positions])
+
+# Initialize global best
+best_idx = np.argmin(personal_best_values)
+global_best_position = personal_best_positions[best_idx].copy()
+global_best_value = personal_best_values[best_idx]
+
+print(f"Initial global best: position={global_best_position}, value={global_best_value}\n")
+
+for iter in range(1, num_iterations + 1):
+    print(f"Iteration {iter}:")
+   
+    for i in range(num_particles):
+        r1, r2 = np.random.rand(2)
+       
+        # Update velocity
+        cognitive = c1 * r1 * (personal_best_positions[i] - positions[i])
+        social = c2 * r2 * (global_best_position - positions[i])
+        velocities[i] = w * velocities[i] + cognitive + social
+       
+        # Update position
+        positions[i] = positions[i] + velocities[i]
+       
+        # Evaluate fitness
+        fitness = f(positions[i])
+       
+        # Update personal best
+        if fitness < personal_best_values[i]:
+            personal_best_values[i] = fitness
+            personal_best_positions[i] = positions[i].copy()
+   
+    # Update global best
+    best_idx = np.argmin(personal_best_values)
+    if personal_best_values[best_idx] < global_best_value:
+        global_best_value = personal_best_values[best_idx]
+        global_best_position = personal_best_positions[best_idx].copy()
+   
+    # Print particles status
+    for i in range(num_particles):
+        print(f" Particle {i+1}: position={positions[i]}, velocity={velocities[i]}, fitness={f(positions[i])}")
+   
+    print(f" Global best position: {global_best_position}, value: {global_best_value}\n")

@@ -1,0 +1,58 @@
+import random
+import math
+
+# Parameters
+POP_SIZE = 20
+MUTATION_RATE = 0.1
+GENERATIONS = 4
+X_MIN, X_MAX = 0, 10
+
+# Fitness function
+def fitness(x):
+    return math.sin(x) * x
+
+# Create initial population (list of real numbers)
+def initial_population():
+    return [random.uniform(X_MIN, X_MAX) for _ in range(POP_SIZE)]
+
+# Tournament selection
+def select(population):
+    contenders = random.sample(population, 3)
+    return max(contenders, key=fitness)
+
+# Crossover (average)
+def crossover(p1, p2):
+    return (p1 + p2) / 2
+
+# Mutation (small random change)
+def mutate(x):
+    if random.random() < MUTATION_RATE:
+        x += random.uniform(-0.5, 0.5)
+        x = max(min(x, X_MAX), X_MIN)
+    return x
+
+# Genetic Algorithm
+def genetic_algorithm():
+    population = initial_population()
+
+    for generation in range(GENERATIONS):
+        new_population = []
+
+        for _ in range(POP_SIZE):
+            parent1 = select(population)
+            parent2 = select(population)
+            child = crossover(parent1, parent2)
+            child = mutate(child)
+            new_population.append(child)
+
+        population = new_population
+        best = max(population, key=fitness)
+        print(f"Gen {generation}: Best x = {best:.4f}, f(x) = {fitness(best):.4f}")
+
+    return best
+
+# Run
+best_solution = genetic_algorithm()
+print("\nBest solution found:")
+print(f"x = {best_solution:.4f}")
+print(f"f(x) = {fitness(best_solution):.4f}")

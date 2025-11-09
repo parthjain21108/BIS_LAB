@@ -1,0 +1,68 @@
+import numpy as np
+import random
+
+def tour_length(tour, dist_matrix):
+    """Calculate total distance of a TSP tour."""
+    return sum(dist_matrix[tour[i], tour[(i+1) % len(tour)]] for i in range(len(tour)))
+
+def levy_flight(Lambda=1.5):
+    """Generate step size using Lévy distribution."""
+    sigma = (np.math.gamma(1+Lambda) * np.sin(np.pi*Lambda/2) /
+             (np.math.gamma((1+Lambda)/2) * Lambda * 2**((Lambda-1)/2)))**(1/Lambda)
+    u = np.random.normal(0, sigma)
+    v = np.random.normal(0, 1)
+    step = u / abs(v)**(1/Lambda)
+    return step
+
+def cuckoo_search_tsp(dist_matrix, n=20, pa=0.25, max_iter=500):
+    num_cities = len(dist_matrix)
+    
+    # Initialize nests (random tours)
+    nests = [random.sample(range(num_cities), num_cities) for _ in range(n)]
+    fitness = [tour_length(t, dist_matrix) for t in nests]
+    
+    best_tour = nests[np.argmin(fitness)]
+    best_fit = min(fitness)
+
+    for _ in range(max_iter):
+        for i in range(n):
+            # Generate new solution by applying a random swap (levy inspired)
+            new_tour = nests[i][:]
+            step = int(abs(levy_flight()) * num_cities) % num_cities
+            if step > 1:
+                a, b = random.sample(range(num_cities), 2)
+                new_tour[a], new_tour[b] = new_tour[b], new_tour[a]
+            
+            new_fit = tour_length(new_tour, dist_matrix)
+            
+            # Replace if better
+            if new_fit < fitness[i]:
+                nests[i], fitness[i] = new_tour, new_fit
+                
+                # Update best
+                if new_fit < best_fit:
+                    best_tour, best_fit = new_tour, new_fit
+        
+        # Abandon some nests
+        for i in range(n):
+            if random.random() < pa:
+                nests[i] = random.sample(range(num_cities), num_cities)
+                fitness[i] = tour_length(nests[i], dist_matrix)
+    
+    return best_tour, best_fit
+
+
+# Example usage
+if __name__ == "__main__":
+    # Distance matrix for 5 cities (symmetric TSP)
+    dist_matrix = np.array([
+        [0, 2, 9, 10, 7],
+        [2, 0, 6, 4, 3],
+        [9, 6, 0, 8, 5],
+        [10, 4, 8, 0, 6],
+        [7, 3, 5, 6, 0]
+    ])
+
+    best_tour, best_length = cuckoo_search_tsp(dist_matrix, n=15, pa=0.3, max_iter=200)
+    print("Best tour found:", best_tour)
+    print("Tour length:", best_length)
